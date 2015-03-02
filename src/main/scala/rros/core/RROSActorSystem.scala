@@ -94,8 +94,8 @@ object RROSActorSystem {
             val requestId = responsePackage.id
             if (sentTable.contains(requestId)){
               val response = Response(responsePackage.code,responsePackage.response)
-              sentTable -= (requestId)
               callbackActorRef ! ExecuteOkCallback(sentTable.get(requestId).get.onComplete,response)
+              sentTable -= (requestId)
             } else {
               //do nothing
             }
@@ -111,15 +111,15 @@ object RROSActorSystem {
         }catch{
           case e:Exception => {
             //log invalid message
-            println("Invalid JSON")
+            println(e.getMessage)
           }
         }
 
       }
       case CompleteResponse(requestId,r) => {
         if (receivedTable.contains(requestId)){
-          receivedTable -= (requestId)
           networkActorRef ! ResponsePackage(requestId,r.code,r.response)
+          receivedTable -= (requestId)
         }
       }
       case _:Reminder =>{
