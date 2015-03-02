@@ -5,7 +5,7 @@ package rros
  *
  * Created by namnguyen on 3/1/15.
  */
-trait RROSSession {
+trait RROSSession extends AutoCloseable{
   //----------------------------------------------------------------------------
   def send(request: Request
            ,onComplete:(Response)=>Unit
