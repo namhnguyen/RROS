@@ -16,7 +16,11 @@ class RROSSessionImpl(socket:Socket) extends RROSSession with SocketListener{
   override def send(message: Message): Unit = ???
 
   //----------------------------------------------------------------------------
-  override def onMessageReceived(callback: (Message) => Unit): Unit = ???
+  override def onMessageReceived(callback:Option[(Message) => Unit]): Unit =
+    _messageReceivedCallback = callback
+  //----------------------------------------------------------------------------
+  override def onRequestReceived(callback:Option[(Request) => Response]): Unit =
+    _requestReceivedCallback = callback
   //----------------------------------------------------------------------------
   override def onReceived(message: String): Unit = ???
   //----------------------------------------------------------------------------
@@ -32,5 +36,12 @@ class RROSSessionImpl(socket:Socket) extends RROSSession with SocketListener{
     socket -= this
   }
   //----------------------------------------------------------------------------
+  def messageReceivedCallback = _messageReceivedCallback
+  def requestReceivedCallback = _requestReceivedCallback
+  //----------------------------------------------------------------------------
+  private var _messageReceivedCallback:Option[(Message)=>Unit] = None
+  private var _requestReceivedCallback:Option[(Request)=>Response] = None
+  //----------------------------------------------------------------------------
+
 }
 ////////////////////////////////////////////////////////////////////////////////

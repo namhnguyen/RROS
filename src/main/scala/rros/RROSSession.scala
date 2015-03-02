@@ -17,7 +17,8 @@ trait RROSSession extends AutoCloseable{
   //----------------------------------------------------------------------------
   def send(message:Message):Unit
   //----------------------------------------------------------------------------
-  def onMessageReceived(callback:(Message)=>Unit):Unit
+  def onMessageReceived(callback:Option[(Message)=>Unit]):Unit
+  def onRequestReceived(callback:Option[(Request)=>Response]):Unit
   //----------------------------------------------------------------------------
 }
 ////////////////////////////////////////////////////////////////////////////////

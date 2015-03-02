@@ -13,14 +13,14 @@ object App {
   //----------------------------------------------------------------------------
   def main(args:Array[String]): Unit = {
     println("Project RROS...")
-    val ref1 = RROSActorSystem.system.actorOf(Props(new FirstActor("Actor 1")))
-    val ref2 = RROSActorSystem.system.actorOf(Props(new FirstActor("Actor 2")))
-    ref1 ! "hello world 1"
-    ref2 ! "hello world 2"
-    Thread.sleep(2000)
-    ref2 ! "kill"
-    Thread.sleep(10000)
-    RROSActorSystem.system.shutdown()
+//    val ref1 = RROSActorSystem.system.actorOf(Props(new FirstActor("Actor 1")))
+//    val ref2 = RROSActorSystem.system.actorOf(Props(new FirstActor("Actor 2")))
+//    ref1 ! "hello world 1"
+//    ref2 ! "hello world 2"
+//    Thread.sleep(2000)
+//    ref2 ! "kill"
+//    Thread.sleep(10000)
+//    RROSActorSystem.system.shutdown()
     //testActorSystem()
   }
 //  //----------------------------------------------------------------------------
@@ -38,22 +38,22 @@ object App {
 //    actorSystem.shutdown()
 //  }
 //  //----------------------------------------------------------------------------
-  class FirstActor(name:String) extends Actor {
-    override def receive = {
-      case msg:String if (msg!="kill") => println(s"Parent [$name]: "+msg)
-      case msg:String if (msg=="kill") => {
-//        val child = context.actorOf(Props[ChildActor])
-//        child ! "hello world"
-        context.stop(self)
-      }
-      case _:Reminder => println(s"[$name]: I am reminded")
-    }
-  }
-  class ChildActor extends Actor {
-    override def receive = {
-      case msg:String => println("Child: "+ msg)
-    }
-  }
+//  class FirstActor(name:String) extends Actor {
+//    override def receive = {
+//      case msg:String if (msg!="kill") => println(s"Parent [$name]: "+msg)
+//      case msg:String if (msg=="kill") => {
+////        val child = context.actorOf(Props[ChildActor])
+////        child ! "hello world"
+//        context.stop(self)
+//      }
+//      case _:Reminder => println(s"[$name]: I am reminded")
+//    }
+//  }
+//  class ChildActor extends Actor {
+//    override def receive = {
+//      case msg:String => println("Child: "+ msg)
+//    }
+//  }
 //  class TimerActor extends Actor {
 //    var count:Int = 0;
 //    override def receive = {
