@@ -2,13 +2,13 @@ package rros.core
 
 import akka.actor.Props
 import rros._
-import rros.core.RROSActorSystem.{OnSocketMessageReceived, SendMessage, SendRequest, ManagementActor}
+import rros.core.RROSActorSystem._
 
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Created by namnguyen on 3/2/15.
  */
-class RROSSessionImpl(socket:Socket) extends RROSSession with SocketListener{
+class RROSProtocolImpl(socket:Socket) extends RROSProtocol with SocketListener{
   socket += this
   //create akka actor
   val managementActorRef = RROSActorSystem.system.actorOf(Props(classOf[ManagementActor],socket,this))
@@ -34,12 +34,10 @@ class RROSSessionImpl(socket:Socket) extends RROSSession with SocketListener{
   }
   //----------------------------------------------------------------------------
   override def onClose(): Unit = {
-    RROSActorSystem.system.stop(managementActorRef)
     this.close()
   }
   //----------------------------------------------------------------------------
-  override def onFailure(): Unit = {
-    RROSActorSystem.system.stop(managementActorRef)
+  override def onFailure(exc:Exception): Unit = {
     this.close()
   }
   //----------------------------------------------------------------------------
@@ -49,6 +47,7 @@ class RROSSessionImpl(socket:Socket) extends RROSSession with SocketListener{
    */
   override def close(): Unit = {
     socket -= this
+    RROSActorSystem.system.stop(managementActorRef)
   }
   //----------------------------------------------------------------------------
   def messageReceivedCallback = _messageReceivedCallback

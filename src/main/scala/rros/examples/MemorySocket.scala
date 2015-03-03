@@ -15,6 +15,6 @@ case class MemorySocket(name:String) extends Socket {
   }
   //----------------------------------------------------------------------------
   override def close(): Unit = {
-    //do nothing now
+    this.socketListeners.map(_.close())
   }
 }

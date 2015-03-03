@@ -6,6 +6,6 @@ package rros
 trait SocketListener extends AutoCloseable{
   def onReceived(message:String):Unit
   def onClose():Unit
-  def onFailure():Unit
+  def onFailure(exc:Exception):Unit
 }
 ////////////////////////////////////////////////////////////////////////////////

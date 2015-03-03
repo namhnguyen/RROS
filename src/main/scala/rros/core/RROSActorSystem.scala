@@ -18,6 +18,12 @@ object RROSActorSystem {
   private val _timerActor = _system.actorOf(Props[TimerActor])
   _timerActor ! SelfLoop()
   //----------------------------------------------------------------------------
+  def shutdown(): Unit ={
+    _system.stop(_timerActor)
+    Thread.sleep(100)
+    _system.shutdown()
+  }
+  //----------------------------------------------------------------------------
   def system = _system
   //----------------------------------------------------------------------------
   class TimerActor extends Actor {
@@ -43,64 +49,66 @@ object RROSActorSystem {
     }
   }
   //----------------------------------------------------------------------------
-  class ManagementActor(socket:Socket,rROSSession: RROSSessionImpl) extends Actor {
+  class ManagementActor(socket:Socket,rROSSession: RROSProtocolImpl) extends Actor {
     val callbackActorRef = context.actorOf(Props[CallbackActor])
-    val networkActorRef = context.actorOf(Props(classOf[NetworkActor],socket))
+    val networkActorRef = context.actorOf(Props(classOf[NetworkActor], socket))
     private val maxAwaitingSentRequests = 100
     //private val maxAwaitingProcessedRequests = 100
-    private val sentTable = scala.collection.mutable.HashMap[String,SentRecord]()
-    private val receivedTable = scala.collection.mutable.HashMap[String,ReceivedRecord]()
+    private val sentTable = scala.collection.mutable.HashMap[String, SentRecord]()
+    private val receivedTable = scala.collection.mutable.HashMap[String, ReceivedRecord]()
 
-    private case class SentRecord(id:String,request:Request
-                                  ,onComplete:(Response)=>Unit
-                                  ,onFailure:(Exception)=>Unit
-                                  ,sentTime:Long,timeOut:Long)
+    private case class SentRecord(id: String, request: Request
+                                  , onComplete: (Response) => Unit
+                                  , onFailure: (Exception) => Unit
+                                  , sentTime: Long, timeOut: Long)
+
     private case class ReceivedRecord(requestPackage: RequestPackage
-                                      ,receivedTime:Long,timeOut:Long,workerRef:ActorRef)
+                                      , receivedTime: Long, timeOut: Long, workerRef: ActorRef)
+
     //--------------------------------------------------------------------------
     override def receive = {
-      case r:SendRequest => {
-        if (sentTable.size < maxAwaitingSentRequests){
+      case r: SendRequest => {
+        if (sentTable.size < maxAwaitingSentRequests) {
           val key = GUID.randomGUID
           sentTable +=
-            (key -> SentRecord(key,r.request,r.onComplete,r.onFailure,System.currentTimeMillis(),r.timeOut))
-          networkActorRef ! RequestPackage(key,r.request.verb,r.request.uri,r.request.body,r.timeOut)
+            (key -> SentRecord(key, r.request, r.onComplete, r.onFailure, System.currentTimeMillis(), r.timeOut))
+          networkActorRef ! RequestPackage(key, r.request.verb, r.request.uri, r.request.body, r.timeOut)
         } else {
-          callbackActorRef ! ExecuteFailureCallback(r.onFailure,new MaxAwaitingRequestException())
+          callbackActorRef ! ExecuteFailureCallback(r.onFailure, new MaxAwaitingRequestException())
         }
       }
-      case r:SendMessage => {
+      case r: SendMessage => {
         networkActorRef ! MessagePackage(r.message.value)
       }
       case OnSocketMessageReceived(value) => {
         //try to parse the message to json
         try {
           val jValue = net.liftweb.json.parse(value)
-          if (jValue \ "id" != JNothing && jValue \ "verb" != JNothing && jValue \ "uri" != JNothing){
+          if (jValue \ "id" != JNothing && jValue \ "verb" != JNothing && jValue \ "uri" != JNothing) {
             val requestPackage = jValue.extract[RequestPackage]
             //store into reived request
             if (rROSSession.requestReceivedCallback.isDefined) {
               val workerRef = context.actorOf(Props(classOf[WorkerActor], rROSSession))
-              val receivedRecord = ReceivedRecord(requestPackage,System.currentTimeMillis(),requestPackage.timeout,workerRef)
+              val receivedRecord = ReceivedRecord(requestPackage, System.currentTimeMillis(), requestPackage.timeout, workerRef)
               workerRef ! ProcessRequest(requestPackage)
               receivedTable += (requestPackage.id -> receivedRecord)
             } else {
-              networkActorRef ! ResponsePackage(requestPackage.id,ResponseCode.NoRequestHandlerOnOtherSide,None)
+              networkActorRef ! ResponsePackage(requestPackage.id, ResponseCode.NoRequestHandlerOnOtherSide, None)
             }
 
-          } else if (jValue \ "id"!=JNothing && jValue \"code" != JNothing){
+          } else if (jValue \ "id" != JNothing && jValue \ "code" != JNothing) {
             val responsePackage = jValue.extract[ResponsePackage]
             //marshal back to response
             val requestId = responsePackage.id
-            if (sentTable.contains(requestId)){
-              val response = Response(responsePackage.code,responsePackage.response)
-              callbackActorRef ! ExecuteOkCallback(sentTable.get(requestId).get.onComplete,response)
+            if (sentTable.contains(requestId)) {
+              val response = Response(responsePackage.code, responsePackage.response)
+              callbackActorRef ! ExecuteOkCallback(sentTable.get(requestId).get.onComplete, response)
               sentTable -= (requestId)
             } else {
               //do nothing
             }
-          } else if (jValue \ "value"!=JNothing){
-            val messagePackage= jValue.extract[MessagePackage]
+          } else if (jValue \ "value" != JNothing) {
+            val messagePackage = jValue.extract[MessagePackage]
             val workerRef = context.actorOf(Props(classOf[WorkerActor], rROSSession))
             workerRef ! ProcessMessage(messagePackage)
           } else {
@@ -108,45 +116,45 @@ object RROSActorSystem {
             println("Invalid JSON format")
           }
 
-        }catch{
-          case e:Exception => {
+        } catch {
+          case e: Exception => {
             //log invalid message
             println(e.getMessage)
           }
         }
 
       }
-      case CompleteResponse(requestId,r) => {
-        if (receivedTable.contains(requestId)){
-          networkActorRef ! ResponsePackage(requestId,r.code,r.response)
+      case CompleteResponse(requestId, r) => {
+        if (receivedTable.contains(requestId)) {
+          networkActorRef ! ResponsePackage(requestId, r.code, r.response)
           receivedTable -= (requestId)
         }
       }
-      case _:Reminder =>{
+      case _: Reminder => {
         //check sent/received request tables, and remove timeout request
         //check sent
         val curTime = System.currentTimeMillis()
         val timeOutSentRequests =
-          sentTable.filter { case (k,v)=> (v.sentTime+v.timeOut)<curTime}
-        sentTable --= timeOutSentRequests.map { case (k,v) => k }
-        timeOutSentRequests.map { case (k,v) =>
-                callbackActorRef ! ExecuteFailureCallback(v.onFailure, new RequestTimeoutException()) } //local
+          sentTable.filter { case (k, v) => (v.sentTime + v.timeOut) < curTime}
+        sentTable --= timeOutSentRequests.map { case (k, v) => k}
+        timeOutSentRequests.map { case (k, v) =>
+          callbackActorRef ! ExecuteFailureCallback(v.onFailure, new RequestTimeoutException())
+        } //local
 
         val timeOutProcessedRequests =
-          receivedTable.filter { case(k,v) => (v.receivedTime+v.timeOut)<curTime}
-        receivedTable --= timeOutProcessedRequests.map { case (k,v)=>k }
+          receivedTable.filter { case (k, v) => (v.receivedTime + v.timeOut) < curTime}
+        receivedTable --= timeOutProcessedRequests.map { case (k, v) => k}
         timeOutProcessedRequests.map { case (k, v) => {
-            networkActorRef ! ResponsePackage(k, ResponseCode.ResponseTimeout, None)
-            context.stop(v.workerRef)
+          networkActorRef ! ResponsePackage(k, ResponseCode.ResponseTimeout, None)
+          context.stop(v.workerRef)
           }
         }
 
       }
     }
-    //--------------------------------------------------------------------------
-
   }
-  //----------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+
   /**
    * handle sending message over network
    */
@@ -180,7 +188,7 @@ object RROSActorSystem {
   /**
    * Created by ManagementActor to handle request
    */
-  class WorkerActor(rROSSession:RROSSessionImpl) extends Actor {
+  class WorkerActor(rROSSession:RROSProtocolImpl) extends Actor {
     override def receive = {
       case ProcessRequest(requestPackage)=>{
         //Marshal back to Request
