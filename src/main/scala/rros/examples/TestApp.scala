@@ -16,7 +16,7 @@ object TestApp {
 
   //----------------------------------------------------------------------------
   def testRROSOverMemorySockets(): Unit ={
-    for (loop <- 1 to 50)
+    for (loop <- 1 to 1)
     {
       val socket1 = MemorySocket("Socket 1")
       val socket2 = MemorySocket("Socket 2")
@@ -25,27 +25,29 @@ object TestApp {
       val session1: RROSProtocol = new RROSProtocolImpl(socket1)
       val session2: RROSProtocol = new RROSProtocolImpl(socket2)
       session2.onRequestReceived(Some { implicit msg =>
-        Thread.sleep(1000)
+        Thread.sleep(500)
         Response("Ok", Some("Session 2 response to :" + msg.body))
       })
       session1.onRequestReceived(Some { implicit msg =>
-        Thread.sleep(1000)
+        Thread.sleep(500)
         Response("Ok", Some("Session 1 response to :" + msg.body))
       })
-      for (i <- 1 to 10) {
+      for (i <- 1 to 1000) {
         session1.send(Request("Ask", "testuri", Some(s"hello from $i"))
           , onComplete = { implicit response => println(s"session 1 asks item $i: " + response)}
-          , timeOut = 2000
+          , timeOut = 5000
           , onFailure = { implicit exc => println(exc)}
         )
+        Thread.sleep(1)
       }
 
-      for (i <- 1 to 10) {
+      for (i <- 1 to 1000) {
         session2.send(Request("Ask", "testuri", Some(s"hello from $i"))
           , onComplete = { implicit response => println(s"session 2 asks item $i: " + response)}
-          , timeOut = 2000
+          , timeOut = 5000
           , onFailure = { implicit exc => println(exc)}
         )
+        Thread.sleep(1)
       }
 
       Thread.sleep(2000)

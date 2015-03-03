@@ -3,6 +3,12 @@ package rros.core
 import akka.actor.Props
 import rros._
 import rros.core.RROSActorSystem._
+import akka.util.Timeout
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import akka.pattern.ask
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /**
@@ -12,10 +18,39 @@ class RROSProtocolImpl(socket:Socket) extends RROSProtocol with SocketListener{
   socket += this
   //create akka actor
   val managementActorRef = RROSActorSystem.system.actorOf(Props(classOf[ManagementActor],socket,this))
-
+  private val RETRY_MAX_COUNT = 10
+  private val RETRY_DELAY = 10
+  private val RETRY_DELAY_PUSHBACK_FACTOR = 2 //next wait will be twice as slower 
+  private implicit val askTimeout = Timeout(5 seconds)
   //----------------------------------------------------------------------------
-  override def send(request: Request, onComplete: (Response) => Unit, timeOut: Long, onFailure: (Exception) => Unit): Unit = {
-    managementActorRef ! SendRequest(request,onComplete,timeOut,onFailure)
+  override def send(request: Request
+                    , onComplete: (Response) => Unit
+                    , timeOut: Long
+                    , onFailure: (Exception) => Unit): Unit = {
+    var retryCount:Int = 0
+    var needRetry:Boolean = false
+    var retryDelay:Long = RETRY_DELAY
+    do {
+      val f = managementActorRef ? SendRequest(request, onComplete, timeOut, onFailure )
+      val result = Await.result(f,2 seconds) //this always suppose to be fast
+      result match {
+        case SentRequestAccepted => { 
+          needRetry = false
+          retryCount = 0
+          retryDelay = RETRY_DELAY
+        }
+        case exc:MaxAwaitingRequestException => {
+          needRetry=true
+          retryCount = retryCount + 1
+          retryDelay = retryCount*RETRY_DELAY_PUSHBACK_FACTOR
+          if (retryCount<RETRY_MAX_COUNT) {
+            Thread.sleep(retryDelay)
+          } else{
+            onFailure(exc)
+          }
+        }
+      }
+    }while(needRetry && retryCount < RETRY_MAX_COUNT)
   }
   //----------------------------------------------------------------------------
   override def send(message: Message): Unit = {

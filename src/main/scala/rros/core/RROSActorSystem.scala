@@ -16,7 +16,7 @@ object RROSActorSystem {
   //----------------------------------------------------------------------------
   private val _system = ActorSystem("RROSActorSystem")
   private val _timerActor = _system.actorOf(Props[TimerActor])
-  _timerActor ! SelfLoop()
+  _timerActor ! SelfLoop
   //----------------------------------------------------------------------------
   def shutdown(): Unit ={
     _system.stop(_timerActor)
@@ -29,7 +29,7 @@ object RROSActorSystem {
   class TimerActor extends Actor {
     var prev:Long = System.currentTimeMillis()
     override def receive = {
-      case _:SelfLoop => {
+      case SelfLoop => {
         blocking { // in case running out of thread pool
           Thread.sleep(1)
         }
@@ -38,13 +38,13 @@ object RROSActorSystem {
         if (delta>1000) {
           prev = cur
           val all  = context.actorSelection("/user/*")
-          all ! Reminder()
+          all ! Reminder
         }else {
-          self ! SelfLoop()
+          self ! SelfLoop
         }
       }
       case _ => {
-        self ! SelfLoop()
+        self ! SelfLoop
       }
     }
   }
@@ -73,8 +73,10 @@ object RROSActorSystem {
           sentTable +=
             (key -> SentRecord(key, r.request, r.onComplete, r.onFailure, System.currentTimeMillis(), r.timeOut))
           networkActorRef ! RequestPackage(key, r.request.verb, r.request.uri, r.request.body, r.timeOut)
+          sender ! SentRequestAccepted
         } else {
-          callbackActorRef ! ExecuteFailureCallback(r.onFailure, new MaxAwaitingRequestException())
+          //callbackActorRef ! ExecuteFailureCallback(r.onFailure, new MaxAwaitingRequestException())
+          sender ! new MaxAwaitingRequestException()
         }
       }
       case r: SendMessage => {
@@ -130,7 +132,7 @@ object RROSActorSystem {
           receivedTable -= (requestId)
         }
       }
-      case _: Reminder => {
+      case Reminder => {
         //check sent/received request tables, and remove timeout request
         //check sent
         val curTime = System.currentTimeMillis()
@@ -205,6 +207,7 @@ object RROSActorSystem {
     }
   }
   //----------------------------------------------------------------------------
+  object SentRequestAccepted
   case class SendRequest(request:Request
                          , onComplete: (Response) => Unit
                          , timeOut: Long
@@ -216,8 +219,8 @@ object RROSActorSystem {
   case class ProcessRequest(requestPackage: RequestPackage) //used by WorkerActor
   case class ProcessMessage(messagePackage:MessagePackage) //used by worker actor
   case class CompleteResponse(requestId:String,response: Response) //workerActor send to its parent
-  private case class Reminder()
-  private case class SelfLoop()
+  private object Reminder
+  private object SelfLoop
   //----------------------------------------------------------------------------
 }
 ////////////////////////////////////////////////////////////////////////////////
