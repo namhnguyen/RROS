@@ -121,7 +121,7 @@ object RROSActorSystem {
         } catch {
           case e: Exception => {
             //log invalid message
-            println(e.getMessage)
+            println("Invalid Message: "+e.getMessage)
           }
         }
 

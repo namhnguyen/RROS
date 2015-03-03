@@ -1,5 +1,7 @@
 package rros.examples
 
+import java.util.concurrent.CountDownLatch
+
 import rros.{Response, Request, RROSProtocol, SocketListener}
 import rros.core.{RROSActorSystem, RROSProtocolImpl}
 
@@ -25,14 +27,14 @@ object TestApp {
       val session1: RROSProtocol = new RROSProtocolImpl(socket1)
       val session2: RROSProtocol = new RROSProtocolImpl(socket2)
       session2.onRequestReceived(Some { implicit msg =>
-        Thread.sleep(500)
+        Thread.sleep(5)
         Response("Ok", Some("Session 2 response to :" + msg.body))
       })
       session1.onRequestReceived(Some { implicit msg =>
-        Thread.sleep(500)
+        Thread.sleep(1000)
         Response("Ok", Some("Session 1 response to :" + msg.body))
       })
-      for (i <- 1 to 1000) {
+      for (i <- 1 to 100) {
         session1.send(Request("Ask", "testuri", Some(s"hello from $i"))
           , onComplete = { implicit response => println(s"session 1 asks item $i: " + response)}
           , timeOut = 5000
@@ -41,16 +43,23 @@ object TestApp {
         Thread.sleep(1)
       }
 
-      for (i <- 1 to 1000) {
+      for (i <- 1 to 100) {
+        //val countDown = new CountDownLatch(1)
         session2.send(Request("Ask", "testuri", Some(s"hello from $i"))
-          , onComplete = { implicit response => println(s"session 2 asks item $i: " + response)}
+          , onComplete = { implicit response =>
+            println(s"session 2 asks item $i: " + response)
+          //  countDown.countDown()
+          }
           , timeOut = 5000
-          , onFailure = { implicit exc => println(exc)}
+          , onFailure = { implicit exc => println(exc)
+          //  countDown.countDown()
+          }
         )
-        Thread.sleep(1)
+        //countDown.await()
+        //Thread.sleep(1)
       }
 
-      Thread.sleep(2000)
+      Thread.sleep(10000)
       socket1.close()
       socket2.close()
     }
