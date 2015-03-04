@@ -1,9 +1,9 @@
 package rros.core
 
 import akka.actor.{ActorRef, Props, Actor, ActorSystem}
-import net.liftweb.json.JsonAST.JNothing
+import JsonUtils._
+import org.json4s._
 import rros._
-import net.liftweb.json.Serialization.write
 import scala.concurrent._
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -12,7 +12,6 @@ import scala.concurrent._
  * Created by namnguyen on 3/2/15.
  */
 object RROSActorSystem {
-  implicit val jsonFormat = net.liftweb.json.DefaultFormats
   //----------------------------------------------------------------------------
   private val _system = ActorSystem("RROSActorSystem")
   private val _timerActor = _system.actorOf(Props[TimerActor])
@@ -85,7 +84,7 @@ object RROSActorSystem {
       case OnSocketMessageReceived(value) => {
         //try to parse the message to json
         try {
-          val jValue = net.liftweb.json.parse(value)
+          val jValue = deserialize(value)
           if (jValue \ "id" != JNothing && jValue \ "verb" != JNothing && jValue \ "uri" != JNothing) {
             val requestPackage = jValue.extract[RequestPackage]
             //store into reived request
@@ -163,15 +162,15 @@ object RROSActorSystem {
   class NetworkActor(socket:Socket) extends Actor {
     override def receive = {
       case r: RequestPackage => {
-        val json = write(r)
+        val json = serialize(r)
         socket.send(json)
       }
       case r: ResponsePackage => {
-        val json = write(r)
+        val json = serialize(r)
         socket.send(json)
       }
       case r: MessagePackage => {
-        val json = write(r)
+        val json = serialize(r)
         socket.send(json)
       }
     }

@@ -12,7 +12,7 @@ mainClass in assembly := Some("rros.App")
 
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.3.9"
 
-libraryDependencies += "net.liftweb" %% "lift-json" % "3.0-M3"
+libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.2.10"
 
 //libraryDependencies += "com.typesafe.play" %% "play" % "2.3.8"
 //only for testing client
