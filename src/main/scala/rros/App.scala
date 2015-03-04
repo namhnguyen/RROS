@@ -1,9 +1,10 @@
 package rros
 
-import rros.core.RROSActorSystem
-import rros.core.RROSActorSystem.Reminder
+import java.net.URI
 
-import scala.concurrent.blocking
+import io.backchat.hookup.HookupClientConfig
+import rros.backchat.BackchatSocketAdapter
+import rros.core.{RROSProtocolImpl, RROSActorSystem}
 import akka.actor.{Props, Actor, ActorSystem}
 
 /**
@@ -22,6 +23,27 @@ object App {
 //    Thread.sleep(10000)
 //    RROSActorSystem.system.shutdown()
     //testActorSystem()
+    testSocketClient()
+  }
+  //----------------------------------------------------------------------------
+  def testSocketClient(): Unit ={
+    println("Test Socket Client")
+    val config = HookupClientConfig(new URI("ws://localhost:9000/sockets/rros"))
+    val adapter = BackchatSocketAdapter(config)
+    val rros_protocol = new RROSProtocolImpl(adapter)
+    rros_protocol.onRequestReceived(Some { implicit request =>
+      Response("OK")
+    })
+    for(i <- 1 to 100000) {
+      rros_protocol.send(Request("GET", s"SomeResource $i")
+        , onComplete = { implicit response => println(s"For $i: [$response]")}
+        , onFailure = { implicit exc => println(exc)}
+      )
+      //Thread.sleep(1)
+    }
+    Thread.sleep(100000)
+    adapter.close()
+
   }
 //  //----------------------------------------------------------------------------
 //  val actorSystem = ActorSystem()
