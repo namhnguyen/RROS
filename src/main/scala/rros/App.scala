@@ -23,6 +23,7 @@ object App {
 //    Thread.sleep(10000)
 //    RROSActorSystem.system.shutdown()
     //testActorSystem()
+    //println(RROSActorSystem.system.settings)
     testSocketClient()
   }
   //----------------------------------------------------------------------------
@@ -34,12 +35,25 @@ object App {
     rros_protocol.onRequestReceived(Some { implicit request =>
       Response("OK")
     })
-    for(i <- 1 to 100000) {
+    for(i <- 1 to 10) {
       rros_protocol.send(Request("GET", s"SomeResource $i")
         , onComplete = { implicit response => println(s"For $i: [$response]")}
-        , onFailure = { implicit exc => println(exc)}
+        , onFailure = { implicit exc => println(s"Miss $i:" + exc)}
+        ,timeOut = 5000
       )
       //Thread.sleep(1)
+    }
+    
+
+    if (adapter.client.isConnected) {
+      for (i <- 1 to 10) {
+        rros_protocol.send(Request("GET", s"SomeResource $i")
+          , onComplete = { implicit response => println(s"For $i: [$response]")}
+          , onFailure = { implicit exc => println(s"Miss $i:" + exc)}
+          , timeOut = 5000
+        )
+        //Thread.sleep(1)
+      }
     }
     Thread.sleep(100000)
     adapter.close()

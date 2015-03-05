@@ -1,6 +1,6 @@
 package rros.backchat
 
-import org.json4s.JsonAST.JObject
+import scala.concurrent.ExecutionContext.Implicits.global
 import rros.Socket
 import io.backchat.hookup._
 import org.json4s.jackson.JsonMethods._
@@ -13,6 +13,7 @@ case class BackchatSocketAdapter(config:HookupClientConfig) extends Socket{
     def receive = {
       case Disconnected(_) =>
         println("The websocket to " + config.getUri().toASCIIString + " disconnected.")
+        socketListeners.map(_.onClose())
       case TextMessage(message) => {
 //        println("RECV: " + message)
 //        socketListeners.map(_.onReceived(message))
@@ -26,14 +27,16 @@ case class BackchatSocketAdapter(config:HookupClientConfig) extends Socket{
     }
 
     connect() onSuccess {
-      case Success ⇒
-        println("The websocket is connected to:"+config.getUri().toASCIIString+".")
-      case _ =>
+      case Success =>
+          println("The websocket is connected to:" + config.getUri().toASCIIString + ".")
+      case _ => {
+        socketListeners.map(_.onClose())
+      }
     }
   }
   //----------------------------------------------------------------------------
   override def send(message: String): Unit = {
-    client.send(message)
+    val result = client.send(message)
   }
   //----------------------------------------------------------------------------
   override def close(): Unit = client.close()

@@ -40,9 +40,9 @@ class RROSProtocolImpl(socket:Socket) extends RROSProtocol with SocketListener{
           retryDelay = RETRY_DELAY
         }
         case exc:MaxAwaitingRequestException => {
-          needRetry=true
+          needRetry = true
           retryCount = retryCount + 1
-          retryDelay = retryCount*RETRY_DELAY_PUSHBACK_FACTOR
+          retryDelay = retryDelay*RETRY_DELAY_PUSHBACK_FACTOR
           if (retryCount<RETRY_MAX_COUNT) {
             Thread.sleep(retryDelay)
           } else{

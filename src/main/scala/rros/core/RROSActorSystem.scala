@@ -2,6 +2,7 @@ package rros.core
 
 import akka.actor.{ActorRef, Props, Actor, ActorSystem}
 import JsonUtils._
+import com.typesafe.config.ConfigFactory
 import org.json4s._
 import rros._
 import scala.concurrent._
@@ -12,8 +13,16 @@ import scala.concurrent._
  * Created by namnguyen on 3/2/15.
  */
 object RROSActorSystem {
+  private val customConf = ConfigFactory.parseString(
+    """
+      |akka {
+      | actor {
+      |   provider = "akka.actor.LocalActorRefProvider"
+      | }
+      |}
+    """.stripMargin)
   //----------------------------------------------------------------------------
-  private val _system = ActorSystem("RROSActorSystem")
+  private val _system = ActorSystem("RROSActorSystem",ConfigFactory.load(customConf))
   private val _timerActor = _system.actorOf(Props[TimerActor])
   _timerActor ! SelfLoop
   //----------------------------------------------------------------------------
