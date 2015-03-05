@@ -20,37 +20,40 @@ object TestApp {
   def testRROSOverMemorySockets(): Unit ={
     for (loop <- 1 to 1)
     {
-      val socket1 = MemorySocket("Socket 1")
-      val socket2 = MemorySocket("Socket 2")
-      socket1.otherSocket = socket2
-      socket2.otherSocket = socket1
-      val session1: RROSProtocol = new RROSProtocolImpl(socket1)
-      val session2: RROSProtocol = new RROSProtocolImpl(socket2)
+      val adapterEndPoint1 = MemorySocketAdapter("Socket 1")
+      val adapterEndPoint2 = MemorySocketAdapter("Socket 2")
+      adapterEndPoint1.otherSocket = adapterEndPoint2
+      adapterEndPoint2.otherSocket = adapterEndPoint1
+      val session1 = RROSProtocol(adapterEndPoint1)
+      val session2 = RROSProtocol(adapterEndPoint2)
       session2.onRequestReceived(Some { implicit msg =>
-        Thread.sleep(5)
+        Thread.sleep(10)
         Response("Ok", Some("Session 2 response to :" + msg.body))
       })
       session1.onRequestReceived(Some { implicit msg =>
-        Thread.sleep(1000)
+        //println("Receive: "+msg.body)
+        Thread.sleep(100)
         Response("Ok", Some("Session 1 response to :" + msg.body))
       })
       for (i <- 1 to 100) {
+        println(s"Session 1 send [$i]")
         session1.send(Request("Ask", "testuri", Some(s"hello from $i"))
           , onComplete = { implicit response => println(s"session 1 asks item $i: " + response)}
-          , timeOut = 5000
+          , timeOut = 10000
           , onFailure = { implicit exc => println(exc)}
         )
         Thread.sleep(1)
       }
 
       for (i <- 1 to 100) {
+        println(s"Session 2 send [$i]")
         //val countDown = new CountDownLatch(1)
         session2.send(Request("Ask", "testuri", Some(s"hello from $i"))
           , onComplete = { implicit response =>
             println(s"session 2 asks item $i: " + response)
           //  countDown.countDown()
           }
-          , timeOut = 5000
+          , timeOut = 10000
           , onFailure = { implicit exc => println(exc)
           //  countDown.countDown()
           }
@@ -60,19 +63,17 @@ object TestApp {
       }
 
       Thread.sleep(10000)
-      socket1.close()
-      socket2.close()
+      adapterEndPoint1.close()
+      adapterEndPoint2.close()
     }
-
-
 
     RROSActorSystem.system.shutdown()
   }
   //----------------------------------------------------------------------------
   def testMemorySocket(): Unit ={
     println("Test Socket Memory")
-    val socket1 = MemorySocket("Socket 1")
-    val socket2 = MemorySocket("Socket 2")
+    val socket1 = MemorySocketAdapter("Socket 1")
+    val socket2 = MemorySocketAdapter("Socket 2")
     socket1.otherSocket = socket2
     socket2.otherSocket = socket1
     socket1 += new SocketListener {

@@ -5,7 +5,7 @@ package rros
  * a small adapter which implement the SocketInterface.
  * Created by namnguyen on 3/1/15.
  */
-trait Socket {
+trait SocketAdapter {
   //----------------------------------------------------------------------------
   def send(message:String):Unit
   //----------------------------------------------------------------------------

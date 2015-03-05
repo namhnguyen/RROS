@@ -1,4 +1,7 @@
 package rros
+
+import rros.core.RROSProtocolImpl
+
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Request/Response over Socket Session 
@@ -20,5 +23,9 @@ trait RROSProtocol extends AutoCloseable{
   def onMessageReceived(callback:Option[(Message)=>Unit]):Unit
   def onRequestReceived(callback:Option[(Request)=>Response]):Unit
   //----------------------------------------------------------------------------
+}
+////////////////////////////////////////////////////////////////////////////////
+object RROSProtocol {
+  def apply(socketAdapter: SocketAdapter) = new RROSProtocolImpl(socketAdapter)
 }
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,7 +1,7 @@
 package rros.play
 
 import akka.actor.{PoisonPill, Props, Actor, ActorRef}
-import rros.Socket
+import rros.SocketAdapter
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Use in play framework
@@ -18,8 +18,8 @@ import rros.Socket
  * }}} 
  * Created by namnguyen on 3/3/15.
  */
-case class PlaySocketAdapter(outActor:ActorRef) extends Socket{
-  class InActor(out:ActorRef,socket: Socket) extends Actor {
+case class PlaySocketAdapter(outActor:ActorRef) extends SocketAdapter{
+  class InActor(out:ActorRef,socket: SocketAdapter) extends Actor {
     override def receive = {
       case msg:String => {
         socket.socketListeners.map(_.onReceived(msg))

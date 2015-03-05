@@ -22,7 +22,8 @@ object RROSActorSystem {
       |}
     """.stripMargin)
   //----------------------------------------------------------------------------
-  private val _system = ActorSystem("RROSActorSystem",ConfigFactory.load(customConf))
+  private val _system = ActorSystem("RROSActorSystem",
+    ConfigFactory.load(customConf).withFallback(ConfigFactory.defaultOverrides()))
   private val _timerActor = _system.actorOf(Props[TimerActor])
   _timerActor ! SelfLoop
   //----------------------------------------------------------------------------
@@ -57,9 +58,9 @@ object RROSActorSystem {
     }
   }
   //----------------------------------------------------------------------------
-  class ManagementActor(socket:Socket,rROSSession: RROSProtocolImpl) extends Actor {
+  class ManagementActor(socketAdapter:SocketAdapter,rROSSession: RROSProtocolImpl) extends Actor {
     val callbackActorRef = context.actorOf(Props[CallbackActor])
-    val networkActorRef = context.actorOf(Props(classOf[NetworkActor], socket))
+    val networkActorRef = context.actorOf(Props(classOf[NetworkActor], socketAdapter))
     private val maxAwaitingSentRequests = 100
     //private val maxAwaitingProcessedRequests = 100
     private val sentTable = scala.collection.mutable.HashMap[String, SentRecord]()
@@ -168,19 +169,19 @@ object RROSActorSystem {
   /**
    * handle sending message over network
    */
-  class NetworkActor(socket:Socket) extends Actor {
+  class NetworkActor(socketAdapter:SocketAdapter) extends Actor {
     override def receive = {
       case r: RequestPackage => {
         val json = serialize(r)
-        socket.send(json)
+        socketAdapter.send(json)
       }
       case r: ResponsePackage => {
         val json = serialize(r)
-        socket.send(json)
+        socketAdapter.send(json)
       }
       case r: MessagePackage => {
         val json = serialize(r)
-        socket.send(json)
+        socketAdapter.send(json)
       }
     }
   }

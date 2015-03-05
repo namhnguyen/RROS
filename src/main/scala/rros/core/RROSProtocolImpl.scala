@@ -14,10 +14,10 @@ import akka.pattern.ask
 /**
  * Created by namnguyen on 3/2/15.
  */
-class RROSProtocolImpl(socket:Socket) extends RROSProtocol with SocketListener{
-  socket += this
+class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with SocketListener{
+  socketAdapter += this
   //create akka actor
-  val managementActorRef = RROSActorSystem.system.actorOf(Props(classOf[ManagementActor],socket,this))
+  val managementActorRef = RROSActorSystem.system.actorOf(Props(classOf[ManagementActor],socketAdapter,this))
   private val RETRY_MAX_COUNT = 10
   private val RETRY_DELAY = 10
   private val RETRY_DELAY_PUSHBACK_FACTOR = 2 //next wait will be twice as slower 
@@ -56,7 +56,6 @@ class RROSProtocolImpl(socket:Socket) extends RROSProtocol with SocketListener{
   override def send(message: Message): Unit = {
     managementActorRef ! SendMessage(message)
   }
-
   //----------------------------------------------------------------------------
   override def onMessageReceived(callback:Option[(Message) => Unit]): Unit =
     _messageReceivedCallback = callback
@@ -73,6 +72,7 @@ class RROSProtocolImpl(socket:Socket) extends RROSProtocol with SocketListener{
   }
   //----------------------------------------------------------------------------
   override def onFailure(exc:Exception): Unit = {
+    //log exception
     this.close()
   }
   //----------------------------------------------------------------------------
@@ -81,7 +81,7 @@ class RROSProtocolImpl(socket:Socket) extends RROSProtocol with SocketListener{
    * the Socket
    */
   override def close(): Unit = {
-    socket -= this
+    socketAdapter -= this
     RROSActorSystem.system.stop(managementActorRef)
   }
   //----------------------------------------------------------------------------

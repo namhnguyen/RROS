@@ -1,9 +1,9 @@
 package rros
 
-import java.net.URI
+//import java.net.URI
 
-import io.backchat.hookup.HookupClientConfig
-import rros.backchat.BackchatSocketAdapter
+//import io.backchat.hookup.HookupClientConfig
+//import rros.backchat.BackchatSocketAdapter
 import rros.core.{RROSProtocolImpl, RROSActorSystem}
 import akka.actor.{Props, Actor, ActorSystem}
 
@@ -29,34 +29,34 @@ object App {
   //----------------------------------------------------------------------------
   def testSocketClient(): Unit ={
     println("Test Socket Client")
-    val config = HookupClientConfig(new URI("ws://localhost:9000/sockets/rros"))
-    val adapter = BackchatSocketAdapter(config)
-    val rros_protocol = new RROSProtocolImpl(adapter)
-    rros_protocol.onRequestReceived(Some { implicit request =>
-      Response("OK")
-    })
-    for(i <- 1 to 10) {
-      rros_protocol.send(Request("GET", s"SomeResource $i")
-        , onComplete = { implicit response => println(s"For $i: [$response]")}
-        , onFailure = { implicit exc => println(s"Miss $i:" + exc)}
-        ,timeOut = 5000
-      )
-      //Thread.sleep(1)
-    }
-    
-
-    if (adapter.client.isConnected) {
-      for (i <- 1 to 10) {
-        rros_protocol.send(Request("GET", s"SomeResource $i")
-          , onComplete = { implicit response => println(s"For $i: [$response]")}
-          , onFailure = { implicit exc => println(s"Miss $i:" + exc)}
-          , timeOut = 5000
-        )
-        //Thread.sleep(1)
-      }
-    }
-    Thread.sleep(100000)
-    adapter.close()
+//    val config = HookupClientConfig(new URI("ws://localhost:9000/sockets/rros"))
+//    val adapter = BackchatSocketAdapter(config)
+//    val rros_protocol = new RROSProtocolImpl(adapter)
+//    rros_protocol.onRequestReceived(Some { implicit request =>
+//      Response("OK")
+//    })
+//    for(i <- 1 to 10) {
+//      rros_protocol.send(Request("GET", s"SomeResource $i")
+//        , onComplete = { implicit response => println(s"For $i: [$response]")}
+//        , onFailure = { implicit exc => println(s"Miss $i:" + exc)}
+//        ,timeOut = 5000
+//      )
+//      //Thread.sleep(1)
+//    }
+//
+//
+//    if (adapter.client.isConnected) {
+//      for (i <- 1 to 10) {
+//        rros_protocol.send(Request("GET", s"SomeResource $i")
+//          , onComplete = { implicit response => println(s"For $i: [$response]")}
+//          , onFailure = { implicit exc => println(s"Miss $i:" + exc)}
+//          , timeOut = 5000
+//        )
+//        //Thread.sleep(1)
+//      }
+//    }
+//    Thread.sleep(100000)
+//    adapter.close()
 
   }
 //  //----------------------------------------------------------------------------
