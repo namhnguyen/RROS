@@ -11,6 +11,7 @@ case class MemorySocketAdapter(name:String) extends SocketAdapter {
   var otherSocket:SocketAdapter = null
   //----------------------------------------------------------------------------
   override def send(message: String): Unit = {
+    Thread.sleep(2)
     otherSocket.socketListeners.map(_.onReceived(message))
   }
   //----------------------------------------------------------------------------

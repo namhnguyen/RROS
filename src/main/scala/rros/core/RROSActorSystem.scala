@@ -40,11 +40,11 @@ object RROSActorSystem {
     override def receive = {
       case SelfLoop => {
         blocking { // in case running out of thread pool
-          Thread.sleep(1)
+          Thread.sleep(100)
         }
         val cur = System.currentTimeMillis()
         val delta = cur-prev
-        if (delta>1000) {
+        if (delta>10) {
           prev = cur
           val all  = context.actorSelection("/user/*")
           all ! Reminder
@@ -59,8 +59,8 @@ object RROSActorSystem {
   }
   //----------------------------------------------------------------------------
   class ManagementActor(socketAdapter:SocketAdapter,rROSSession: RROSProtocolImpl) extends Actor {
-    val callbackActorRef = context.actorOf(Props[CallbackActor])
-    val networkActorRef = context.actorOf(Props(classOf[NetworkActor], socketAdapter))
+    private val callbackActorRef = context.actorOf(Props[CallbackActor])
+    private val networkActorRef = context.actorOf(Props(classOf[NetworkActor], socketAdapter))
     private val maxAwaitingSentRequests = 100
     //private val maxAwaitingProcessedRequests = 100
     private val sentTable = scala.collection.mutable.HashMap[String, SentRecord]()
@@ -141,6 +141,16 @@ object RROSActorSystem {
           receivedTable -= (requestId)
         }
       }
+      case exceptionMessage:ExceptionMessage => {
+        //do log here
+        println("Log:"+exceptionMessage)
+      }
+      case ExceptionMessageOfRequest(requestId,exception) => {
+        if (sentTable.contains(requestId)){
+          callbackActorRef ! ExecuteFailureCallback(
+                  sentTable.get(requestId).get.onFailure,exception)
+        }
+      }
       case Reminder => {
         //check sent/received request tables, and remove timeout request
         //check sent
@@ -172,16 +182,28 @@ object RROSActorSystem {
   class NetworkActor(socketAdapter:SocketAdapter) extends Actor {
     override def receive = {
       case r: RequestPackage => {
-        val json = serialize(r)
-        socketAdapter.send(json)
+        try {
+          val json = serialize(r)
+          socketAdapter.send(json)
+        }catch {
+          case exc:Exception => context.parent ! ExceptionMessageOfRequest(r.id,exc)
+        }
       }
       case r: ResponsePackage => {
-        val json = serialize(r)
-        socketAdapter.send(json)
+        try {
+          val json = serialize(r)
+          socketAdapter.send(json)
+        }catch {
+          case exc:Exception => context.parent ! ExceptionMessage(exc)
+        }
       }
       case r: MessagePackage => {
-        val json = serialize(r)
-        socketAdapter.send(json)
+        try {
+          val json = serialize(r)
+          socketAdapter.send(json)
+        }catch {
+          case exc:Exception => context.parent ! ExceptionMessage(exc)
+        }
       }
     }
   }
@@ -228,6 +250,8 @@ object RROSActorSystem {
   case class ProcessRequest(requestPackage: RequestPackage) //used by WorkerActor
   case class ProcessMessage(messagePackage:MessagePackage) //used by worker actor
   case class CompleteResponse(requestId:String,response: Response) //workerActor send to its parent
+  case class ExceptionMessageOfRequest(requestId:String,exception:Exception) // this message is sent to the ManagementActor if exception occur
+  case class ExceptionMessage(exception:Exception)
   private object Reminder
   private object SelfLoop
   //----------------------------------------------------------------------------
