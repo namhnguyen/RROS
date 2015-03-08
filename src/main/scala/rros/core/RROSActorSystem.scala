@@ -150,6 +150,7 @@ object RROSActorSystem {
           callbackActorRef ! ExecuteFailureCallback(
                   sentTable.get(requestId).get.onFailure,exception)
         }
+        sentTable -= (requestId)
       }
       case Reminder => {
         //check sent/received request tables, and remove timeout request
