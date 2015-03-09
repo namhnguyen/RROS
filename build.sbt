@@ -16,6 +16,8 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.3.9"
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.2.10"
 
+libraryDependencies += "org.eclipse.jetty.websocket" % "websocket-client" % "9.2.9.v20150224"
+
 //libraryDependencies += "com.typesafe.play" %% "play" % "2.3.8"
 //only for testing client - lots of bugs
 //libraryDependencies += "io.backchat.hookup" %% "hookup" % "0.3.0"

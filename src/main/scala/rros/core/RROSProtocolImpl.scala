@@ -6,7 +6,7 @@ import rros.core.RROSActorSystem._
 import akka.util.Timeout
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 
 
 
@@ -31,21 +31,34 @@ class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with So
     var needRetry:Boolean = false
     var retryDelay:Long = RETRY_DELAY
     do {
-      val f = managementActorRef ? SendRequest(request, onComplete, timeOut, onFailure )
-      val result = Await.result(f,2 seconds) //this always suppose to be fast
-      result match {
-        case SentRequestAccepted => { 
-          needRetry = false
-          retryCount = 0
-          retryDelay = RETRY_DELAY
+      try {
+        val f = managementActorRef ? SendRequest(request, onComplete, timeOut, onFailure)
+        val result = Await.result(f, 2 seconds) //this always suppose to be fast
+        result match {
+          case SentRequestAccepted => {
+            needRetry = false
+            retryCount = 0
+            retryDelay = RETRY_DELAY
+          }
+          case exc: MaxAwaitingRequestException => {
+            needRetry = true
+            retryCount = retryCount + 1
+            retryDelay = retryDelay * RETRY_DELAY_PUSHBACK_FACTOR
+            if (retryCount < RETRY_MAX_COUNT) {
+              Thread.sleep(retryDelay)
+            } else {
+              onFailure(exc)
+            }
+          }
         }
-        case exc:MaxAwaitingRequestException => {
+      } catch {
+        case exc:AskTimeoutException => {
           needRetry = true
           retryCount = retryCount + 1
-          retryDelay = retryDelay*RETRY_DELAY_PUSHBACK_FACTOR
-          if (retryCount<RETRY_MAX_COUNT) {
+          retryDelay = retryDelay * RETRY_DELAY_PUSHBACK_FACTOR
+          if (retryCount < RETRY_MAX_COUNT) {
             Thread.sleep(retryDelay)
-          } else{
+          } else {
             onFailure(exc)
           }
         }

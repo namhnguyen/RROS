@@ -4,6 +4,9 @@ package rros
 
 //import io.backchat.hookup.HookupClientConfig
 //import rros.backchat.BackchatSocketAdapter
+
+import _root_.java.net.URI
+
 import rros.core.{RROSProtocolImpl, RROSActorSystem}
 import akka.actor.{Props, Actor, ActorSystem}
 
@@ -29,6 +32,21 @@ object App {
   //----------------------------------------------------------------------------
   def testSocketClient(): Unit ={
     println("Test Socket Client")
+    val socketAdapter = new
+        rros.java.adapters.JettyWebSocketClientAdapter(
+            new URI("ws://localhost:9000/sockets/rros/macbookpro15"))
+    socketAdapter.connect()
+    val protocol = RROSProtocol(socketAdapter.toScalaSocketAdapter)
+    var i:Int = 1;
+    while(true){
+      val cur = i
+      protocol.send(Request("POST","c://test",Some(s"TestBody [$cur]")),onComplete = {
+        implicit r => println(s"[$cur] response $r")
+      })
+      i = i + 1
+      Thread.sleep(10)
+    }
+    Thread.sleep(100000)
 //    val config = HookupClientConfig(new URI("ws://localhost:9000/sockets/rros"))
 //    val adapter = BackchatSocketAdapter(config)
 //    val rros_protocol = new RROSProtocolImpl(adapter)
