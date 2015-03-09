@@ -6,6 +6,8 @@ version := "1.0"
 
 scalaVersion := "2.11.6"
 
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
+
 assemblyJarName in assembly := "rros.jar"
 
 mainClass in assembly := Some("rros.App")

@@ -19,6 +19,7 @@ object RROSActorSystem {
       | actor {
       |   provider = "akka.actor.LocalActorRefProvider"
       | }
+      | log-dead-letters = off
       | log-dead-letters-during-shutdown = off
       |}
     """.stripMargin)
