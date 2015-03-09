@@ -19,6 +19,7 @@ object RROSActorSystem {
       | actor {
       |   provider = "akka.actor.LocalActorRefProvider"
       | }
+      | log-dead-letters-during-shutdown = off
       |}
     """.stripMargin)
   //----------------------------------------------------------------------------
@@ -26,8 +27,19 @@ object RROSActorSystem {
     ConfigFactory.load(customConf).withFallback(ConfigFactory.defaultOverrides()))
   private val _timerActor = _system.actorOf(Props[TimerActor])
   _timerActor ! SelfLoop
+
+  @volatile private var gracefullyShutdown:Boolean = false
+
+  Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+    @Override
+    def run() {
+      if (!gracefullyShutdown) shutdown()
+    }
+  }){ })
+
   //----------------------------------------------------------------------------
   def shutdown(): Unit ={
+    gracefullyShutdown = true
     _system.stop(_timerActor)
     Thread.sleep(100)
     _system.shutdown()
@@ -246,12 +258,18 @@ object RROSActorSystem {
                          , onFailure: (Exception) => Unit)
   case class SendMessage(message: Message)
   case class OnSocketMessageReceived(message:String)
-  case class ExecuteOkCallback(callback:(Response)=>Unit,response:Response) //used by CallbackActor
-  case class ExecuteFailureCallback(callback:(Exception)=>Unit,exception:Exception) //used by CallbackActor
-  case class ProcessRequest(requestPackage: RequestPackage) //used by WorkerActor
-  case class ProcessMessage(messagePackage:MessagePackage) //used by worker actor
-  case class CompleteResponse(requestId:String,response: Response) //workerActor send to its parent
-  case class ExceptionMessageOfRequest(requestId:String,exception:Exception) // this message is sent to the ManagementActor if exception occur
+  //used by CallbackActor
+  case class ExecuteOkCallback(callback:(Response)=>Unit,response:Response)
+  //used by CallbackActor
+  case class ExecuteFailureCallback(callback:(Exception)=>Unit,exception:Exception)
+  //used by WorkerActor
+  case class ProcessRequest(requestPackage: RequestPackage)
+  //used by worker actor
+  case class ProcessMessage(messagePackage:MessagePackage)
+  //workerActor send to its parent
+  case class CompleteResponse(requestId:String,response: Response)
+  // this message is sent to the ManagementActor if exception occur
+  case class ExceptionMessageOfRequest(requestId:String,exception:Exception)
   case class ExceptionMessage(exception:Exception)
   private object Reminder
   private object SelfLoop
