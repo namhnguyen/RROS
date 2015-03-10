@@ -121,6 +121,13 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     @Override
     public void close() throws IOException {
         this.closing = true;
+        try {
+            this.client.stop();
+        } catch(IOException exc) {
+            throw exc;
+        } catch (Exception exc) {
+            throw new RuntimeException(exc);
+        }
 
     }
     private final WebSocketClient client;
