@@ -40,7 +40,7 @@ object App {
     var i:Int = 1;
     while(true){
       val cur = i
-      protocol.send(Request("POST","c://test",Some(s"TestBody [$cur]")),onComplete = {
+      protocol.send(Request("POST",s"c://test/$cur",Some(s"TestBody [$cur]")),onComplete = {
         implicit r => println(s"[$cur] response $r")
       })
       i = i + 1
