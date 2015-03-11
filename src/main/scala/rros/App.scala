@@ -7,7 +7,7 @@ package rros
 
 import _root_.java.net.URI
 
-import rros.core.{RROSProtocolImpl, RROSActorSystem}
+import rros.core.{GUID, RROSProtocolImpl, RROSActorSystem}
 import akka.actor.{Props, Actor, ActorSystem}
 
 /**
@@ -31,20 +31,24 @@ object App {
   }
   //----------------------------------------------------------------------------
   def testSocketClient(): Unit ={
-    println("Test Socket Client")
+    val uniqueId= GUID.randomGUID
+    println(s"Test Socket Client $uniqueId")
     val socketAdapter = new
         rros.java.adapters.JettyWebSocketClientAdapter(
             new URI("ws://localhost:9000/sockets/rros/macbookpro15"))
     socketAdapter.connect()
     val protocol = RROSProtocol(socketAdapter.toScalaSocketAdapter)
+    protocol.onRequestReceived(callback = Some({ implicit  request =>
+      Response("OK",Some(s"From Client [$uniqueId]"))
+    }))
     var i:Int = 1;
     while(true){
       val cur = i
-      protocol.send(Request("POST",s"c://test/$cur",Some(s"TestBody [$cur]")),onComplete = {
-        implicit r => println(s"[$cur] response $r")
+      protocol.send(Request("POST",s"c://test/$uniqueId/$cur",Some(s"TestBody [$uniqueId/$cur]")),onComplete = {
+        implicit r => println(s"[$uniqueId/$cur] response $r")
       })
       i = i + 1
-      Thread.sleep(10)
+      Thread.sleep(4000)
     }
     Thread.sleep(100000)
 //    val config = HookupClientConfig(new URI("ws://localhost:9000/sockets/rros"))

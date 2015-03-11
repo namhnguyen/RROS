@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 public class JettyWebSocketClientAdapter extends SocketAdapter{
     private static final Logger LOG =
             Logger.getLogger(JettyWebSocketClientAdapter.class.getName());
-    private static final long INITIAL_RETRY_DELAY = 2000;
+    private static final long INITIAL_RETRY_DELAY = 5000;
     private static final double RETRY_DELAY_PUSHBACK_FACTOR = 1.1;
     private static final long RETRY_DELAY_MAX_VALUE = 30000;
 
@@ -101,6 +101,10 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     public void onClose(int statusCode, String reason){
         LOG.log(Level.INFO, "Close because of ["+reason+"]");
         if (!this.closing){
+            try {
+                Thread.sleep(retryDelay);
+            } catch (Exception exc) {
+            }
             this.reconnect();
             //this.connect();
         }else {
