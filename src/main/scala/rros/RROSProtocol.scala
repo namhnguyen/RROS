@@ -20,8 +20,11 @@ trait RROSProtocol extends AutoCloseable{
   //----------------------------------------------------------------------------
   def send(message:Message):Unit
   //----------------------------------------------------------------------------
+  def send(rawString:String):Unit
+  //----------------------------------------------------------------------------
   def onMessageReceived(callback:Option[(Message)=>Unit]):Unit
   def onRequestReceived(callback:Option[(Request)=>Response]):Unit
+  def onAnythingReceived(callback:Option[(String)=>Unit]):Unit
   //----------------------------------------------------------------------------
 }
 ////////////////////////////////////////////////////////////////////////////////

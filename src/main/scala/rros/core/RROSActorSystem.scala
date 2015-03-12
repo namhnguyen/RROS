@@ -104,6 +104,7 @@ object RROSActorSystem {
       case r: SendMessage => {
         networkActorRef ! MessagePackage(r.message.value)
       }
+      case SendString(string) => networkActorRef ! string
       case OnSocketMessageReceived(value) => {
         //try to parse the message to json
         try {
@@ -137,14 +138,22 @@ object RROSActorSystem {
             workerRef ! ProcessMessage(messagePackage)
           } else {
             //invalid message
-            println("Invalid JSON format")
+            val workerRef = context.actorOf(Props(classOf[WorkerActor], rROSSession))
+            workerRef ! value
+            //println("Invalid JSON format")
           }
 
         } catch {
           case e: Exception => {
             //log invalid message
-            println("Invalid Message: "+e.getMessage)
+            //println("Invalid Message: "+e.getMessage)
+
           }
+        }
+
+        if (rROSSession.anythingReceivedCallback.isDefined) {
+          val workerRef = context.actorOf(Props(classOf[WorkerActor], rROSSession))
+          workerRef ! value
         }
 
       }
@@ -219,6 +228,13 @@ object RROSActorSystem {
           case exc:Exception => context.parent ! ExceptionMessage(exc)
         }
       }
+      case r:String => {
+        try {
+          socketAdapter.send(r)
+        }catch {
+          case exc:Exception => context.parent ! ExceptionMessage(exc)
+        }
+      }
     }
   }
   //----------------------------------------------------------------------------
@@ -249,6 +265,9 @@ object RROSActorSystem {
         rROSSession.messageReceivedCallback.get.apply(message)
         context.stop(self)
       }
+      case stringValue:String => {
+        rROSSession.anythingReceivedCallback.get.apply(stringValue)
+      }
     }
   }
   //----------------------------------------------------------------------------
@@ -257,6 +276,7 @@ object RROSActorSystem {
                          , onComplete: (Response) => Unit
                          , timeOut: Long
                          , onFailure: (Exception) => Unit)
+  case class SendString(string:String)
   case class SendMessage(message: Message)
   case class OnSocketMessageReceived(message:String)
   //used by CallbackActor

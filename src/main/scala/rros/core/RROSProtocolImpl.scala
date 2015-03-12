@@ -65,6 +65,9 @@ class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with So
       }
     }while(needRetry && retryCount < RETRY_MAX_COUNT)
   }
+  override def send(rawString: String): Unit = managementActorRef ! SendString(rawString)
+  //----------------------------------------------------------------------------
+
   //----------------------------------------------------------------------------
   override def send(message: Message): Unit = {
     managementActorRef ! SendMessage(message)
@@ -75,6 +78,9 @@ class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with So
   //----------------------------------------------------------------------------
   override def onRequestReceived(callback:Option[(Request) => Response]): Unit =
     _requestReceivedCallback = callback
+  //----------------------------------------------------------------------------
+  override def onAnythingReceived(callback: Option[(String) => Unit]): Unit =
+    _anythingReceivedCallback = callback
   //----------------------------------------------------------------------------
   override def onReceived(message: String): Unit = {
     managementActorRef ! OnSocketMessageReceived(message)
@@ -100,9 +106,12 @@ class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with So
   //----------------------------------------------------------------------------
   def messageReceivedCallback = _messageReceivedCallback
   def requestReceivedCallback = _requestReceivedCallback
+  def anythingReceivedCallback = _anythingReceivedCallback
   //----------------------------------------------------------------------------
   private var _messageReceivedCallback:Option[(Message)=>Unit] = None
   private var _requestReceivedCallback:Option[(Request)=>Response] = None
+  private var _anythingReceivedCallback:Option[(String)=>Unit] = None
+  //----------------------------------------------------------------------------
   //----------------------------------------------------------------------------
 
 }

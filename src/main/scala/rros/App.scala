@@ -39,7 +39,8 @@ object App {
     socketAdapter.connect()
     val protocol = RROSProtocol(socketAdapter.toScalaSocketAdapter)
     protocol.onRequestReceived(callback = Some({ implicit  request =>
-      Response("OK",Some(s"From Client [$uniqueId]"))
+      println(request)
+      Response("OK",Some(s"From Client [$uniqueId] content [$request]"))
     }))
     var i:Int = 1;
     while(true){
