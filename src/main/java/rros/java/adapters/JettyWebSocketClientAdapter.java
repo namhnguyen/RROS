@@ -31,6 +31,8 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     public JettyWebSocketClientAdapter(URI uri){
         this.uri = uri;
         this.client = new WebSocketClient();
+        this.client.setMaxIdleTimeout(Long.MAX_VALUE);
+        this.client.setAsyncWriteTimeout(5000);
     }
     public void connect(){
 
@@ -62,6 +64,7 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
 
                 //client.start();
                 ClientUpgradeRequest request = new ClientUpgradeRequest();
+
                 client.connect(this,this.uri,request);
                 connectOK = true;
             }catch(IOException t){

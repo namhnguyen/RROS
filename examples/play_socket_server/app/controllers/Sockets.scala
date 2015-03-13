@@ -4,7 +4,7 @@ import java.util.concurrent.CountDownLatch
 
 import play.api.mvc._
 import play.libs.Akka
-import rros.{Response, RROSProtocol}
+import rros.{SocketListener, Response, RROSProtocol}
 import rros.play.{PublisherSocketAdapter, ChannelManagementTableImpl, ReceiverSocketAdapter}
 import scala.util.Random
 
@@ -23,6 +23,16 @@ object Sockets extends Controller{
    */
   def socket(endpoint:String) = WebSocket.using[String] { request =>
     val rrosAdapter = new ReceiverSocketAdapter(endpoint, managementTable)
+    rrosAdapter += new SocketListener {
+      override def onClose(): Unit = { println(s"$endpoint close")}
+
+      override def onFailure(exc: Exception): Unit = { println(s"$endpoint failure")}
+
+      override def onReceived(message: String): Unit = { println(s"$endpoint recceive $message")}
+
+      override def close(): Unit = { println("Force Close") }
+
+    }
     val rros_protocol = RROSProtocol(rrosAdapter)
     rros_protocol.onRequestReceived( Some { implicit rros_request =>
       println(rros_request)
@@ -38,14 +48,14 @@ object Sockets extends Controller{
    * @param content
    * @return
    */
-  def push(endpoint:String,content:String) = Action { request =>
+  def push(endpoint:String,verb:String,resource:String,content:String) = Action { request =>
     val pushAdapter = new PublisherSocketAdapter(endpoint,managementTable)
     val rros_protocol = RROSProtocol(pushAdapter)
     val countDown = new CountDownLatch(1)
     var out_response:rros.Response = null
     var out_exception:Exception = null
     rros_protocol.send(
-      rros.Request("POST","Client",Some("Test"))
+      rros.Request(verb,resource,Some(content))
       ,onComplete = { response =>
         out_response = response
         countDown.countDown()

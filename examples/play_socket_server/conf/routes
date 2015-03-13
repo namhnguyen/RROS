@@ -10,5 +10,5 @@ GET        /assets/*file                  controllers.Assets.at(path="/public", 
 
 GET        /sockets/rros/:endpoint        controllers.Sockets.socket(endpoint:String)
 
-GET        /sockets/push                  controllers.Sockets.push(endpoint:String,content:String)
+GET        /sockets/push                  controllers.Sockets.push(endpoint:String,verb:String,resource:String,content:String)
 
