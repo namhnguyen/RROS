@@ -1,6 +1,7 @@
 package rros.java.adapters;
 
 
+import org.eclipse.jetty.websocket.api.CloseStatus;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
@@ -14,6 +15,8 @@ import rros.java.SocketAdapter;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 ////////////////////////////////////////////////////////////////////////////////
@@ -27,6 +30,11 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     private static final long INITIAL_RETRY_DELAY = 5000;
     private static final double RETRY_DELAY_PUSHBACK_FACTOR = 1.1;
     private static final long RETRY_DELAY_MAX_VALUE = 30000;
+    private static final long PING_TIME_OUT = 10000;
+    private static final long PING_DURATION = 2000;
+    private Timer timer;
+    volatile private long lastMessageReceivedTime = System.currentTimeMillis();
+    volatile private long lastPing = System.currentTimeMillis();
 
     public JettyWebSocketClientAdapter(URI uri){
         this.uri = uri;
@@ -83,7 +91,8 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     public void onError(Session session,Throwable error){
         //System.out.println(error.toString());
         LOG.log(Level.WARNING,error.getMessage());
-        if (!(error instanceof IllegalStateException)) {
+        if (!(error instanceof IllegalStateException))
+            if(timer!=null) timer.cancel();{
             if (!this.closing) {
                 try {
                     Thread.sleep(retryDelay);
@@ -95,6 +104,25 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     }
     @OnWebSocketConnect
     public void onConnect(Session session){
+        this.lastMessageReceivedTime = System.currentTimeMillis();
+        this.lastPing = System.currentTimeMillis();
+        timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                long currentTime = System.currentTimeMillis();
+                long durationFromLastMessageReceived = currentTime-lastMessageReceivedTime;
+                if (durationFromLastMessageReceived>PING_TIME_OUT){
+                    session.close(5,CloseStatus.trimMaxReasonLength("Cannot receive ping from other end!!!"));
+                }else {
+                    long durationFromLastPing = currentTime - lastPing;
+                    if (durationFromLastPing>PING_DURATION){
+                        lastPing = currentTime;
+                        send("\0");
+                    }
+                }
+            }
+        }, 0, 1000);
         this.retryDelay = INITIAL_RETRY_DELAY;
         LOG.log(Level.INFO, session.toString());
         this.session = session;
@@ -103,6 +131,7 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     @OnWebSocketClose
     public void onClose(int statusCode, String reason){
         LOG.log(Level.INFO, "Close because of ["+reason+"]");
+        if(timer!=null) timer.cancel();
         if (!this.closing){
             try {
                 Thread.sleep(retryDelay);
@@ -111,7 +140,11 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
             this.reconnect();
             //this.connect();
         }else {
-            if (this.session.isOpen()) this.session.close();
+            //make sure it close
+            if (this.session.isOpen()) {
+                this.session.close();
+            }
+            this.session = null;
             try {
                 this.client.stop();
             } catch (Exception exc) {
@@ -122,8 +155,11 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
 
     @OnWebSocketMessage
     public void onMessage(String msg){
-        for(SocketListener listener : this.getListeners()){
-            listener.onReceived(msg);
+        this.lastMessageReceivedTime = System.currentTimeMillis();
+        if (!msg.equals("\0")) {
+            for (SocketListener listener : this.getListeners()) {
+                listener.onReceived(msg);
+            }
         }
     }
 
@@ -160,7 +196,7 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
         this.closing = true;
         LOG.log(Level.INFO, "Explicitly Close");
         if (this.session!=null&&this.session.isOpen())
-            this.session.close();
+            this.session.close(0,"Normal Close");
         try {
             this.client.stop();
         } catch(IOException exc) {

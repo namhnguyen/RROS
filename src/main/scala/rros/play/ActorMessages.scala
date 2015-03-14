@@ -15,3 +15,4 @@ case class SendMessage(message:String)
 object ForceClose
 object WebSocketClose
 object CheckReceiverActor
+object Ping

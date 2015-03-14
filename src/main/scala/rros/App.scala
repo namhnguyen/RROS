@@ -42,15 +42,15 @@ object App {
       println(request)
       Response("OK",Some(s"From Client [$uniqueId] content [$request]"))
     }))
-    var i:Int = 1;
-    while(true){
-      val cur = i
-      protocol.send(Request("POST",s"c://test/$uniqueId/$cur",Some(s"TestBody [$uniqueId/$cur]")),onComplete = {
-        implicit r => println(s"[$uniqueId/$cur] response $r")
-      })
-      i = i + 1
-      Thread.sleep(4000)
-    }
+//    var i:Int = 1;
+//    while(true){
+//      val cur = i
+//      protocol.send(Request("POST",s"c://test/$uniqueId/$cur",Some(s"TestBody [$uniqueId/$cur]")),onComplete = {
+//        implicit r => println(s"[$uniqueId/$cur] response $r")
+//      })
+//      i = i + 1
+//      Thread.sleep(4000)
+//    }
     Thread.sleep(100000)
 //    val config = HookupClientConfig(new URI("ws://localhost:9000/sockets/rros"))
 //    val adapter = BackchatSocketAdapter(config)
