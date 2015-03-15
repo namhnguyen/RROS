@@ -21,6 +21,7 @@ class PublisherSocketAdapter(
   val listenerActorRef = remoteActorSystem.actorOf(
     Props(new ReceiverListenerActor(this,endPointId,channelManagementTable)))
   listenerActorRef ! CheckReceiverActor
+  this.socketListeners.map(_.onConnect())
   //  val cancellable = Akka.system.scheduler.schedule(
   //     0 milliseconds
   //    ,10000 milliseconds
@@ -84,6 +85,7 @@ class PublisherSocketAdapter(
     }
     override def postStop() = {
       //cancellable.cancel()
+      socketAdapter.socketListeners.map(_.onClose())
       someListeningActorPath.map(path=>
         remoteActorSystem.actorSelection(path) ! UnregisterToReceiveMessage(self))
     }

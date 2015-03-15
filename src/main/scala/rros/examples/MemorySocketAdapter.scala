@@ -16,6 +16,6 @@ case class MemorySocketAdapter(name:String) extends SocketAdapter {
   }
   //----------------------------------------------------------------------------
   override def close(): Unit = {
-    this.socketListeners.map(_.close())
+    this.socketListeners.map(_.onClose())
   }
 }

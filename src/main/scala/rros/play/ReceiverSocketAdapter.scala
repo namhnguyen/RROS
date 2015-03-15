@@ -65,6 +65,8 @@ class ReceiverSocketAdapter(
         remoteActorSystem.actorSelection(oldActorPath.get) ! ForceClose
       out_channel = Some(channel)
 
+      this.socketListeners.map(_.onConnect())
+
       cancellableTimer = Some(rros.core.RROSActorSystem.system.scheduler
         .schedule(FiniteDuration(0,SECONDS),FiniteDuration(2,SECONDS))
       {

@@ -3,7 +3,8 @@ package rros
 /**
  * Created by namnguyen on 3/1/15.
  */
-trait SocketListener extends AutoCloseable{
+trait SocketListener {
+  def onConnect():Unit
   def onReceived(message:String):Unit
   def onClose():Unit
   def onFailure(exc:Exception):Unit

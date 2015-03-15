@@ -73,6 +73,8 @@ class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with So
     managementActorRef ! SendMessage(message)
   }
   //----------------------------------------------------------------------------
+  override def onConnect():Unit = { }
+  //----------------------------------------------------------------------------
   override def onMessageReceived(callback:Option[(Message) => Unit]): Unit =
     _messageReceivedCallback = callback
   //----------------------------------------------------------------------------

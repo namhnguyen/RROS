@@ -30,8 +30,7 @@ object Sockets extends Controller{
 
       override def onReceived(message: String): Unit = { println(s"$endpoint recceive $message")}
 
-      override def close(): Unit = { println("Force Close") }
-
+      override def onConnect(): Unit = { println("On Connect")}
     }
     val rros_protocol = RROSProtocol(rrosAdapter)
     rros_protocol.onRequestReceived( Some { implicit rros_request =>

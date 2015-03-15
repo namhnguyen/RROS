@@ -83,15 +83,16 @@ object TestApp {
 
       override def onReceived(message: String): Unit = println("Socket 1 received: "+message)
 
-      override def close(): Unit = ???
+      override def onConnect(): Unit = ???
     }
-    socket2 += new SocketListener {override def onClose(): Unit = ???
+    socket2 += new SocketListener {
+      override def onClose(): Unit = ???
 
       override def onFailure(exception: Exception): Unit = ???
 
       override def onReceived(message: String): Unit = println("Socket 2 received: "+message)
 
-      override def close(): Unit = ???
+      override def onConnect(): Unit = ???
     }
     socket1.send("Hi I am 1")
     socket2.send("Hi I am 2")
