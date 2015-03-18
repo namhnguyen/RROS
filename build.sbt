@@ -18,6 +18,14 @@ libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.2.10"
 
 libraryDependencies += "org.eclipse.jetty.websocket" % "websocket-client" % "9.2.9.v20150224"
 
+libraryDependencies += "javax.websocket" % "javax.websocket-client-api" % "1.1"
+
+libraryDependencies += "org.glassfish.tyrus" % "tyrus-client" % "1.10"
+
+libraryDependencies += "org.glassfish.tyrus" % "tyrus-server" % "1.10"
+
+libraryDependencies += "org.glassfish.tyrus" % "tyrus-container-grizzly" % "1.2.1"
+
 libraryDependencies += "com.typesafe.play" %% "play-iteratees" % "2.3.8"
 //libraryDependencies += "org.eclipse.jetty" % "jetty-websocket" % "8.1.16.v20140903"
 

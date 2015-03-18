@@ -34,23 +34,23 @@ object App {
     val uniqueId= GUID.randomGUID
     println(s"Test Socket Client $uniqueId")
     val socketAdapter = new
-        rros.java.adapters.JettyWebSocketClientAdapter(
-            new URI("ws://localhost:9000/sockets/rros/macbookpro15"))
+        rros.java.adapters.GrizzlyWebSocketClientAdapter(
+            new URI("ws://localhost:9000/device/sockets/3514BBBK1724"))
     socketAdapter.connect()
     val protocol = RROSProtocol(socketAdapter.toScalaSocketAdapter)
     protocol.onRequestReceived(callback = Some({ implicit  request =>
       println(request)
       Response("OK",Some(s"From Client [$uniqueId] content [$request]"))
     }))
-//    var i:Int = 1;
-//    while(true){
-//      val cur = i
-//      protocol.send(Request("POST",s"c://test/$uniqueId/$cur",Some(s"TestBody [$uniqueId/$cur]")),onComplete = {
-//        implicit r => println(s"[$uniqueId/$cur] response $r")
-//      })
-//      i = i + 1
-//      Thread.sleep(4000)
-//    }
+    var i:Int = 1;
+    while(true){
+      val cur = i
+      protocol.send(Request("POST",s"c://test/$uniqueId/$cur",Some(s"TestBody [$uniqueId/$cur]")),onComplete = {
+        implicit r => println(s"[$uniqueId/$cur] response $r")
+      })
+      i = i + 1
+      Thread.sleep(4000)
+    }
     Thread.sleep(100000)
 //    val config = HookupClientConfig(new URI("ws://localhost:9000/sockets/rros"))
 //    val adapter = BackchatSocketAdapter(config)
