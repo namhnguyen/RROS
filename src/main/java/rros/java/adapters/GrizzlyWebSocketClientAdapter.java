@@ -22,8 +22,8 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
     private static final long INITIAL_RETRY_DELAY = 5000;
     private static final double RETRY_DELAY_PUSHBACK_FACTOR = 1.1;
     private static final long RETRY_DELAY_MAX_VALUE = 30000;
-    private static final long PING_TIME_OUT = 10000;
-    private static final long PING_DURATION = 2000;
+    private static final long PING_TIME_OUT = rros.GlobalConfig.PING_TIME_OUT(); //  10000;
+    private static final long PING_DURATION = rros.GlobalConfig.PING_DURATION(); // 2000
     private Timer timer;
     volatile private long lastMessageReceivedTime = System.currentTimeMillis();
     volatile private long lastPing = System.currentTimeMillis();
@@ -56,7 +56,6 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
 
             this.session = null;
             try{
-
                 retryDelay *= RETRY_DELAY_PUSHBACK_FACTOR;
                 if (retryDelay>RETRY_DELAY_MAX_VALUE)
                     retryDelay = RETRY_DELAY_MAX_VALUE;
@@ -114,7 +113,6 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
             }
         }, 0, 1000);
         this.retryDelay = INITIAL_RETRY_DELAY;
-
     }
 
     @OnClose
@@ -131,13 +129,13 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
             //this.connect();
         }else {
             //make sure it close
-            if (this.session.isOpen()) {
-                try {
+            try {
+                if (this.session!=null)
                     this.session.close();
-                }catch(Exception exc){
-                    LOG.log(Level.INFO,exc.getMessage(),exc);
-                }
+            }catch(Exception exc){
+                LOG.log(Level.INFO,exc.getMessage(),exc);
             }
+
             this.session = null;
         }
     }
@@ -189,7 +187,7 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
     public void close() throws IOException {
         this.closing = true;
         LOG.log(Level.INFO, "Explicitly Close");
-        if (this.session!=null&&this.session.isOpen())
+        if (this.session!=null)
             this.session.close(CloseReasons.NORMAL_CLOSURE.getCloseReason());
     }
     private Session session;

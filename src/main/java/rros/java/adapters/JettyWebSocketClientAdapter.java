@@ -30,8 +30,8 @@ public class JettyWebSocketClientAdapter extends SocketAdapter{
     private static final long INITIAL_RETRY_DELAY = 5000;
     private static final double RETRY_DELAY_PUSHBACK_FACTOR = 1.1;
     private static final long RETRY_DELAY_MAX_VALUE = 30000;
-    private static final long PING_TIME_OUT = 10000;
-    private static final long PING_DURATION = 2000;
+    private static final long PING_TIME_OUT = rros.GlobalConfig.PING_TIME_OUT(); //  10000;
+    private static final long PING_DURATION = rros.GlobalConfig.PING_DURATION(); // 2000
     private Timer timer;
     volatile private long lastMessageReceivedTime = System.currentTimeMillis();
     volatile private long lastPing = System.currentTimeMillis();

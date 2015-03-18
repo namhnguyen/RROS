@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.iteratee.Concurrent.Channel
-import rros.SocketAdapter
+import rros.{GlobalConfig, SocketAdapter}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
@@ -15,8 +15,8 @@ import scala.concurrent.duration._
 class ReceiverSocketAdapter(
                              fromEndPointId:String
                              ,channelManagementTable: ChannelManagementTable)(implicit remoteActorSystem:ActorSystem) extends SocketAdapter{
-  val PING_TIME_OUT: Long = 10000
-  val PING_DURATION: Long = 2000
+  val PING_TIME_OUT: Long = GlobalConfig.PING_TIME_OUT
+  val PING_DURATION: Long = GlobalConfig.PING_DURATION
   var managementActorRef:Option[ActorRef] = None
   var lastReceivedMessageTime:Long = System.currentTimeMillis()
   var lastPing:Long = System.currentTimeMillis()
