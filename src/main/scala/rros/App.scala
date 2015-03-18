@@ -35,7 +35,7 @@ object App {
     println(s"Test Socket Client $uniqueId")
     val socketAdapter = new
         rros.java.adapters.GrizzlyWebSocketClientAdapter(
-            new URI("ws://localhost:9000/device/sockets/3514BBBK1724"))
+            new URI("ws://localhost:9000/device/sockets/TEST002"))
     socketAdapter.connect()
     val protocol = RROSProtocol(socketAdapter.toScalaSocketAdapter)
     protocol.onRequestReceived(callback = Some({ implicit  request =>

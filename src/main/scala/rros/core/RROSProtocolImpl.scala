@@ -15,13 +15,14 @@ import akka.pattern.{AskTimeoutException, ask}
  * Created by namnguyen on 3/2/15.
  */
 class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with SocketListener{
-  socketAdapter += this
   //create akka actor
   val managementActorRef = RROSActorSystem.system.actorOf(Props(classOf[ManagementActor],socketAdapter,this))
   private val RETRY_MAX_COUNT = 10
   private val RETRY_DELAY = 10
   private val RETRY_DELAY_PUSHBACK_FACTOR = 2 //next wait will be twice as slower 
   private implicit val askTimeout = Timeout(5 seconds)
+  //remember to attach the socketAdapter after everything is initialized
+  socketAdapter += this
   //----------------------------------------------------------------------------
   override def send(request: Request
                     , onComplete: (Response) => Unit
@@ -84,9 +85,8 @@ class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with So
   override def onAnythingReceived(callback: Option[(String) => Unit]): Unit =
     _anythingReceivedCallback = callback
   //----------------------------------------------------------------------------
-  override def onReceived(message: String): Unit = {
+  override def onReceived(message: String): Unit =
     managementActorRef ! OnSocketMessageReceived(message)
-  }
   //----------------------------------------------------------------------------
   override def onClose(): Unit = {
     this.close()
@@ -114,7 +114,5 @@ class RROSProtocolImpl(socketAdapter:SocketAdapter) extends RROSProtocol with So
   private var _requestReceivedCallback:Option[(Request)=>Response] = None
   private var _anythingReceivedCallback:Option[(String)=>Unit] = None
   //----------------------------------------------------------------------------
-  //----------------------------------------------------------------------------
-
 }
 ////////////////////////////////////////////////////////////////////////////////

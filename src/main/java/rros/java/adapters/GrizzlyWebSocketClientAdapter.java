@@ -11,7 +11,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+////////////////////////////////////////////////////////////////////////////////
 /**
  * Created by namnguyen on 3/17/15.
  */
@@ -37,6 +37,7 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             container.connectToServer(this, this.uri);
         }catch(Exception exc){
+            LOG.log(Level.WARNING,exc.getMessage(),exc);
             try {
                 Thread.sleep(retryDelay);
             }catch(Exception ignore){ }
@@ -68,6 +69,8 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
 
                 connectOK = true;
             }catch(IOException | DeploymentException t){
+                LOG.log(Level.WARNING,t.getMessage(),t);
+                //t.printStackTrace();
                 connectOK = false;
                 System.out.println("Retry to connect to server... "+t.toString());
                 try {
@@ -141,7 +144,7 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
     @OnMessage
     public void onMessage(String message) {
         this.lastMessageReceivedTime = System.currentTimeMillis();
-        if (!message.equals("\0")) {
+        if (!(message==null||message.equals("\0"))) {
             for (SocketListener listener : this.getListeners()) {
                 listener.onReceived(message);
             }
@@ -149,7 +152,8 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
     }
     @OnError
     public void onError(Throwable error) {
-        LOG.log(Level.WARNING, error.getMessage());
+        LOG.log(Level.WARNING, error.getMessage(),error);
+
 //        if(timer!=null) timer.cancel();
 //        if (!this.closing) {
 //            try {
@@ -193,3 +197,4 @@ public class GrizzlyWebSocketClientAdapter extends SocketAdapter {
     private boolean closing = false;
     private long retryDelay = INITIAL_RETRY_DELAY;
 }
+////////////////////////////////////////////////////////////////////////////////
