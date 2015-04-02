@@ -12,6 +12,8 @@ assemblyJarName in assembly := "rros.jar"
 
 mainClass in assembly := Some("rros.App")
 
+resolvers += "Typesafe repository releases" at "http://repo.typesafe.com/typesafe/releases/"
+
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.3.9"
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.2.10"
