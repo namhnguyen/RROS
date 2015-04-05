@@ -1,18 +1,18 @@
 package rros.play
 
 import akka.actor._
-import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.iteratee.Concurrent.Channel
+import play.api.libs.iteratee.{Concurrent, Iteratee}
 import rros.{GlobalConfig, SocketAdapter}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 /**
- * Created by namnguyen on 3/11/15.
+ * Created by namnguyen on 4/5/15.
  */
-class ReceiverSocketAdapter(
-                             fromEndPointId:String
-                             ,channelManagementTable: ChannelManagementTable)(implicit remoteActorSystem:ActorSystem) extends SocketAdapter{
+class SimpleSocketAdapter(topic:String,topicSubscriberTable: TopicSubscriberTable)
+    (implicit remoteActorSystem:ActorSystem) extends SocketAdapter{
+
   val PING_TIME_OUT: Long = GlobalConfig.PING_TIME_OUT
   val PING_DURATION: Long = GlobalConfig.PING_DURATION
   var managementActorRef:Option[ActorRef] = None
@@ -32,9 +32,9 @@ class ReceiverSocketAdapter(
     this.socketListeners.map(_.onClose())
     //notify other listener that I am closed
     val path = ActorUtils.getActorServerPath(remoteActorSystem,managementActorRef.get)
-    channelManagementTable.unregisterIfExists(fromEndPointId,path)
+    topicSubscriberTable.unsubscribe(topic,path)
     cancellableTimer.map(_.cancel())
-    managementActorRef.map(_ ! WebSocketClose)
+//  managementActorRef.map(_ ! WebSocketClose)
     managementActorRef.map(_ ! PoisonPill )
     //only unregister if have not been overwritten
 
@@ -49,24 +49,21 @@ class ReceiverSocketAdapter(
 
       managementActorRef = Some(remoteActorSystem
         .actorOf(Props(new ManagementActor(this))))
-      val oldActorPath = channelManagementTable.get(endPointId = fromEndPointId)
+
       val newActorPath = ActorUtils.getActorServerPath(remoteActorSystem,managementActorRef.get)
       //println(newActorPath)
 
-      channelManagementTable.register(
-        endPointId = fromEndPointId,
-        newActorPath
+      topicSubscriberTable.subscribe(
+        topic = topic
+        ,actorPath = newActorPath
       )
 
-      //forceClose other actor that is using the same endPointId
-      if (oldActorPath.isDefined)
-        remoteActorSystem.actorSelection(oldActorPath.get) ! ForceClose
       out_channel = Some(channel)
 
       this.socketListeners.map(_.onConnect())
 
       cancellableTimer = Some(rros.core.RROSActorSystem.system.scheduler
-        .schedule(FiniteDuration(0,SECONDS),FiniteDuration(2,SECONDS))
+        .schedule(FiniteDuration(0,SECONDS),FiniteDuration(1,SECONDS))
       {
         managementActorRef.get ! Ping
       })
@@ -75,50 +72,28 @@ class ReceiverSocketAdapter(
       this.socketListeners.map(_.onFailure(new Exception(reason)))
     }
   )
-
+  //----------------------------------------------------------------------------
+  def handle = (in,out)
+  //----------------------------------------------------------------------------
   override def send(message: String): Unit = out_channel.map(_.push(message))
 
+  //----------------------------------------------------------------------------
   override def close(): Unit = out_channel.map(_.eofAndEnd())
 
-  def handle = (in,out)
-
-
-
-  /**
-   * ManagementActor is used to communicate across different servers and thus
-   * needs to be remote host
-   */
-  class ManagementActor(socketAdapter: ReceiverSocketAdapter) extends Actor {
-
-    val inboundListeners = scala.collection.mutable.HashSet[ActorRef]()
+  class ManagementActor(socketAdapter: SimpleSocketAdapter) extends Actor {
     override def receive: Receive = {
-      case RegisterToReceiveMessage(otherManagementActor) =>
-        inboundListeners += otherManagementActor
-      case UnregisterToReceiveMessage(otherManagementActor) =>
-        inboundListeners -= otherManagementActor
-      case msg:MessageReceived => //broadcast to all listeners on other servers
-        inboundListeners.map(_ ! msg)
-      case SendMessage(message) => socketAdapter.send(message) //from other actor
-      case WebSocketClose =>
-        inboundListeners.map(_ ! WebSocketClose)
-      case ForceClose =>
-        socketAdapter.close()
       case Ping => {
         val now = System.currentTimeMillis()
-        val durationFromLastReceived = now - socketAdapter.lastReceivedMessageTime
-
-        if (durationFromLastReceived > PING_TIME_OUT) {
-          self ! ForceClose
-        }
-        else {
-          val durationFromLastPing = now - socketAdapter.lastPing
-          if (durationFromLastPing > PING_DURATION) {
-            socketAdapter.lastPing = now
-            socketAdapter.send("\0")
-          }
+        val durationFromLastPing = now - socketAdapter.lastPing
+        if (durationFromLastPing > PING_DURATION) {
+          socketAdapter.lastPing = now
+          socketAdapter.send("\0")
         }
       }
+      case msg:String => {
+        socketAdapter.send(msg)
+      }
+
     }
   }
 }
-
